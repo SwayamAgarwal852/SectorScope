@@ -12,7 +12,7 @@ from pathlib import Path
 
 import duckdb
 
-from build_db import ROOT, build
+from build_db import DB_PATH, ROOT, build
 
 EXPORT_DIR = ROOT / "exports"
 
@@ -61,18 +61,23 @@ EXPORTS = {
 }
 
 
-def export(export_dir: Path = EXPORT_DIR) -> dict[str, int]:
-    db_path = build()
+def null_counts(con: duckdb.DuckDBPyConnection, query: str) -> dict[str, int]:
+    """Number of NULLs per column of `query`, for columns that have any."""
+    rel = con.sql(query)
+    counts = con.sql(f"SELECT COUNT(*) - COUNT(COLUMNS(*)) FROM ({query})").fetchone()
+    return {col: n for col, n in zip(rel.columns, counts) if n}
+
+
+def export(export_dir: Path = EXPORT_DIR, db_path: Path = DB_PATH) -> dict[str, int]:
+    build(db_path)
     export_dir.mkdir(parents=True, exist_ok=True)
     row_counts = {}
     with duckdb.connect(str(db_path), read_only=True) as con:
         for filename, query in EXPORTS.items():
             rel = con.sql(query)
-            null_rows = con.sql(
-                f"SELECT COUNT(*) FROM ({query}) WHERE NOT (COLUMNS(*) IS NOT NULL)"
-            ).fetchone()[0]
-            if null_rows:
-                raise ValueError(f"{filename}: {null_rows} rows contain nulls; not exporting")
+            nulls = null_counts(con, query)
+            if nulls:
+                raise ValueError(f"{filename}: columns contain nulls {nulls}; not exporting")
             out = export_dir / filename
             rel.write_csv(str(out), header=True, date_format="%Y-%m-%d")
             row_counts[filename] = con.sql(f"SELECT COUNT(*) FROM ({query})").fetchone()[0]
