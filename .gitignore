@@ -14,3 +14,6 @@ __pycache__/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Power BI exports (regenerate with: python src/export_powerbi.py)
+exports/*.csv

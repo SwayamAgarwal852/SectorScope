@@ -28,3 +28,13 @@ The CSV itself has **no sector column**. The ticker→sector mapping in [`sql/se
 ### Sector weighting
 
 Sector returns are **equal-weighted** averages of their constituents' daily returns. The dataset contains no market-cap or shares-outstanding data, so cap-weighting is not possible without importing an external source, which this project deliberately avoids. Note that Cloud/Software, Energy and Industrials have only two constituents each, so their sector figures are heavily driven by individual stocks.
+
+## Power BI exports
+
+The Power BI-ready CSVs are **not committed**. Regenerate them locally before a Power BI session (and after any data or SQL change):
+
+```bash
+python src/export_powerbi.py
+```
+
+This writes 8 CSVs to `exports/`. See [`exports/README.md`](exports/README.md) for every file's columns and conventions.

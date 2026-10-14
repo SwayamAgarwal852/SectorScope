@@ -43,6 +43,11 @@ EXPORTS = {
         FROM ticker_correlation
         ORDER BY ticker_a, ticker_b
     """,
+    "sector_correlation.csv": """
+        SELECT sector_a, sector_b, correlation, n_obs
+        FROM sector_correlation
+        ORDER BY sector_a, sector_b
+    """,
     "ticker_rolling_volatility.csv": """
         SELECT trade_date, ticker, sector, rolling_vol_30d, rolling_vol_30d_annualized
         FROM ticker_rolling_volatility

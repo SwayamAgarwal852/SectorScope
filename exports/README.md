@@ -1,6 +1,8 @@
 # Power BI exports
 
-Flat CSV tables generated from the DuckDB SQL layer (`sql/`) for loading into Power BI Desktop. Regenerate them with:
+Flat CSV tables generated from the DuckDB SQL layer (`sql/`) for loading into Power BI Desktop.
+
+**The CSVs are not committed to git** (`exports/*.csv` is gitignored). Generate them locally before a Power BI session, and again whenever the data or SQL changes:
 
 ```bash
 python src/export_powerbi.py
@@ -27,6 +29,7 @@ The script rebuilds `data/processed/sectorscope.duckdb` from the raw CSV first, 
 | `sector_summary.csv` | sector × period | 42 |
 | `ticker_risk_return.csv` | ticker × period | 126 |
 | `correlation.csv` | ordered ticker pair | 441 |
+| `sector_correlation.csv` | ordered sector pair | 49 |
 | `ticker_rolling_volatility.csv` | ticker × trading date (full 30-day windows only) | 25,767 |
 | `sector_rolling_volatility.csv` | sector × trading date (full 30-day windows only) | 8,589 |
 
@@ -104,6 +107,17 @@ Pearson correlation of daily returns over the full period, in long format: all 2
 | `correlation` | decimal | Correlation of the two tickers' daily returns (-1 to 1; in this data all pairs are positive) |
 | `n_obs` | integer | Number of paired daily returns used (1,256) |
 
+### `sector_correlation.csv`
+
+Pearson correlation between the sectors' equal-weighted daily return series (from `sector_daily.csv`) over the full period. Same long format as `correlation.csv`: all 7 × 7 ordered pairs, diagonal exactly 1. Low values point to sector pairs that diversify each other.
+
+| Column | Type | Meaning |
+|---|---|---|
+| `sector_a` | text | First sector |
+| `sector_b` | text | Second sector |
+| `correlation` | decimal | Correlation of the two sectors' daily returns (-1 to 1) |
+| `n_obs` | integer | Number of paired daily returns used (1,256) |
+
 ### `ticker_rolling_volatility.csv`
 
 30-trading-day rolling volatility per stock. Rows only exist once a full 30-return window is available, so the series starts on **2020-02-14**.
@@ -132,9 +146,7 @@ Pearson correlation of daily returns over the full period, in long format: all 2
 There are no separate dimension files. The shared keys are:
 
 - `ticker` links `ticker_daily`, `ticker_risk_return`, `ticker_rolling_volatility`, and `correlation` (as `ticker_a` or `ticker_b`).
-- `sector` links every file (as `sector_a` / `sector_b` in `correlation`).
+- `sector` links every file (as `sector_a` / `sector_b` in the two correlation files).
 - `trade_date` links the four daily tables.
 
 Because these are many-to-many between fact tables, you will likely want small ticker, sector and date dimension tables built inside Power BI (e.g. from distinct values), which is part of the separate Power BI build.
-
-The DuckDB database also contains a sector-level correlation view (`sector_correlation`) that is not exported here.
