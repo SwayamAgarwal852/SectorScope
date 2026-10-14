@@ -2,6 +2,8 @@
 
 Sector-wise performance and risk-return analysis of 21 S&P 500 companies across 7 sectors, using daily prices from 2020 to 2024.
 
+**🔗 Live Demo:** [sectorscope.streamlit.app](https://sectorscope.streamlit.app/)
+
 The core of the project is a **DuckDB SQL analytics layer** that turns raw daily prices into returns, rolling volatility, equal-weighted sector indices, risk-return summaries and correlation matrices. On top of it sit:
 
 - **Power BI-ready CSV exports** for a sector dashboard (built separately in Power BI Desktop), and
@@ -105,6 +107,8 @@ You don't need to run the build step before the app: it builds the database auto
 Sector returns are **equal-weighted** averages of their constituents' daily returns (equal weights, rebalanced daily). The dataset contains no market-cap or shares-outstanding data, so cap-weighting is not possible without importing an external source, which this project deliberately avoids. Note that Cloud/Software, Energy and Industrials have only two constituents each, so their sector figures are heavily driven by individual stocks.
 
 ### Portfolio app
+
+Try it live at [sectorscope.streamlit.app](https://sectorscope.streamlit.app/), or run it locally with `streamlit run streamlit_app/app.py`.
 
 The app offers two rebalancing modes, and they can give very different results:
 
