@@ -1,7 +1,7 @@
 """Build the SectorScope DuckDB database from the raw CSV and the sql/ layer.
 
-Runs every numbered sql/NN_*.sql file in order against
-data/processed/sectorscope.duckdb, replacing its tables and views.
+Recreates data/processed/sectorscope.duckdb from scratch and runs every
+numbered sql/NN_*.sql file against it in order.
 
 Usage:
     python src/build_db.py
@@ -24,6 +24,9 @@ def sql_files() -> list[Path]:
 
 def build(db_path: Path = DB_PATH) -> Path:
     db_path.parent.mkdir(parents=True, exist_ok=True)
+    # Start fresh so objects dropped from the SQL files don't linger.
+    db_path.unlink(missing_ok=True)
+    db_path.with_name(db_path.name + ".wal").unlink(missing_ok=True)
     with duckdb.connect(str(db_path)) as con:
         con.execute("SET VARIABLE raw_csv_path = ?", [str(RAW_CSV)])
         con.execute("SET VARIABLE sector_seed_path = ?", [str(SECTOR_SEED)])

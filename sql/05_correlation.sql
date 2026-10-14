@@ -9,7 +9,8 @@ SELECT
     a.sector AS sector_a,
     b.ticker AS ticker_b,
     b.sector AS sector_b,
-    CORR(a.daily_return, b.daily_return) AS correlation,
+    -- Self-correlation is set to exactly 1 (CORR can return 1.0000000000000002).
+    CASE WHEN a.ticker = b.ticker THEN 1.0 ELSE CORR(a.daily_return, b.daily_return) END AS correlation,
     COUNT(*)                             AS n_obs
 FROM ticker_daily_returns a
 JOIN ticker_daily_returns b USING (trade_date)
@@ -21,7 +22,8 @@ CREATE OR REPLACE VIEW sector_correlation AS
 SELECT
     a.sector AS sector_a,
     b.sector AS sector_b,
-    CORR(a.daily_return, b.daily_return) AS correlation,
+    -- Self-correlation is set to exactly 1 (CORR can return 1.0000000000000002).
+    CASE WHEN a.sector = b.sector THEN 1.0 ELSE CORR(a.daily_return, b.daily_return) END AS correlation,
     COUNT(*)                             AS n_obs
 FROM sector_daily_returns a
 JOIN sector_daily_returns b USING (trade_date)

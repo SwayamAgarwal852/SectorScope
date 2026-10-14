@@ -13,19 +13,18 @@ Source: [Market Champions: Leading Stocks Dataset](https://www.kaggle.com/datase
 
 ### Sector mapping (manually supplied)
 
-The dataset ships **without sector labels**. The ticker→sector mapping in [`sql/seed_sector_mapping.csv`](sql/seed_sector_mapping.csv) is a GICS-style classification supplied manually for this project; it is not sourced from the original dataset. It uses **8 sectors**, although the dataset's description lists 7: NextEra Energy (NEE) is a utility and is kept in its own Utilities sector rather than forced into Energy.
+The CSV itself has **no sector column**. The ticker→sector mapping in [`sql/seed_sector_mapping.csv`](sql/seed_sector_mapping.csv) was entered manually and follows the **7 sector categories described on the dataset's Kaggle page**. Some of these differ from a GICS classification: ASML (semiconductor equipment) sits in Cloud/Software, and NextEra Energy (NEE, a utility) sits in Energy.
 
 | Sector | Tickers |
 |---|---|
-| Technology | AAPL, GOOGL, MSFT, NVDA, ASML, TSM |
-| Cloud/Software | CRM |
+| Technology | AAPL, GOOGL, MSFT, NVDA, TSM |
+| Cloud/Software | CRM, ASML |
 | Healthcare | JNJ, LLY, UNH |
 | Financials | JPM, BLK, V |
 | Consumer | AMZN, COST, PG, WMT |
 | Industrials | CAT, HON |
-| Energy | XOM |
-| Utilities | NEE |
+| Energy | XOM, NEE |
 
 ### Sector weighting
 
-Sector returns are **equal-weighted** averages of their constituents' daily returns. The dataset contains no market-cap or shares-outstanding data, so cap-weighting is not possible without importing an external source, which this project deliberately avoids. Note that several sectors have only one or two constituents (Cloud/Software, Energy, Utilities, Industrials), so their "sector" figures reflect individual stocks.
+Sector returns are **equal-weighted** averages of their constituents' daily returns. The dataset contains no market-cap or shares-outstanding data, so cap-weighting is not possible without importing an external source, which this project deliberately avoids. Note that Cloud/Software, Energy and Industrials have only two constituents each, so their sector figures are heavily driven by individual stocks.

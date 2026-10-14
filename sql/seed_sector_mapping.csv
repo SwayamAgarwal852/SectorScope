@@ -3,7 +3,7 @@ AAPL,Technology
 GOOGL,Technology
 MSFT,Technology
 NVDA,Technology
-ASML,Technology
+ASML,Cloud/Software
 TSM,Technology
 CRM,Cloud/Software
 JNJ,Healthcare
@@ -19,4 +19,4 @@ WMT,Consumer
 CAT,Industrials
 HON,Industrials
 XOM,Energy
-NEE,Utilities
+NEE,Energy

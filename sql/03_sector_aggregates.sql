@@ -39,14 +39,3 @@ FROM (
     WINDOW w AS (PARTITION BY sector ORDER BY trade_date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW)
 )
 WHERE n_obs = 30;
-
--- Calendar-year sector performance (return compounded within each year).
-CREATE OR REPLACE VIEW sector_yearly_returns AS
-SELECT
-    sector,
-    year(trade_date)                       AS year,
-    exp(SUM(ln(1 + daily_return))) - 1     AS annual_return,
-    STDDEV_SAMP(daily_return) * sqrt(252)  AS annualized_volatility,
-    COUNT(*)                               AS n_trading_days
-FROM sector_daily_returns
-GROUP BY sector, year(trade_date);
