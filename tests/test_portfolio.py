@@ -58,6 +58,31 @@ def test_rebalancing_modes_differ_for_multi_stock_portfolio(pcon):
     assert hold["total_return"] != pytest.approx(daily["total_return"], abs=1e-3)
 
 
+DRIFT_TICKERS, DRIFT_WEIGHTS = ["NVDA", "JNJ", "XOM", "JPM"], [0.25, 0.25, 0.25, 0.25]
+
+
+def test_buy_and_hold_sector_weights_drift_with_uneven_growth(pcon, ticker_stats):
+    w = portfolio.sector_weights(pcon, DRIFT_TICKERS, DRIFT_WEIGHTS, "buy_and_hold").set_index("sector")
+    assert w["starting_weight"].sum() == pytest.approx(1)
+    assert w["current_weight"].sum() == pytest.approx(1)
+    assert w["starting_weight"].to_dict() == pytest.approx(
+        {"Technology": 0.25, "Healthcare": 0.25, "Energy": 0.25, "Financials": 0.25}
+    )
+    # NVDA grew far more than the others, so Technology's share rises and the rest shrink.
+    assert w.loc["Technology", "current_weight"] > 0.25
+    for sector in ("Healthcare", "Energy", "Financials"):
+        assert w.loc[sector, "current_weight"] < 0.25
+    # Current weight = starting weight x growth, renormalized.
+    growth = {t: 1 + ticker_stats.loc[t, "total_return"] for t in DRIFT_TICKERS}
+    expected_tech = 0.25 * growth["NVDA"] / sum(0.25 * g for g in growth.values())
+    assert w.loc["Technology", "current_weight"] == pytest.approx(expected_tech, abs=1e-10)
+
+
+def test_daily_rebalanced_sector_weights_do_not_drift(pcon):
+    w = portfolio.sector_weights(pcon, DRIFT_TICKERS, DRIFT_WEIGHTS, "daily")
+    assert w["current_weight"].to_numpy() == pytest.approx(w["starting_weight"].to_numpy(), abs=1e-12)
+
+
 @pytest.mark.parametrize("rebalance", portfolio.REBALANCE_MODES)
 def test_series_shape(pcon, rebalance):
     s = portfolio.portfolio_series(pcon, ["AAPL", "MSFT"], [0.5, 0.5], rebalance)

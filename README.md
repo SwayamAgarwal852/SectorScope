@@ -111,6 +111,8 @@ The app offers two rebalancing modes, and they can give very different results:
 - **Buy and hold** (default): weights are set on 2020-01-02 and then drift with prices.
 - **Daily rebalance**: weights are reset to target every day, the same convention as the sector figures.
 
+Under buy and hold, the sector breakdown shows each sector's **starting** weight next to its **current** weight on the last date (starting weight × the holdings' growth, renormalized), so the drift is visible. Under daily rebalancing the two are identical by definition, so only the target weights are shown.
+
 Every portfolio is compared with a benchmark of all 21 stocks, equally weighted, using the same rebalancing mode. The test suite checks that a 100% single-stock portfolio reproduces that stock's figures from the SQL layer, and that an equal-weight, daily-rebalanced portfolio of a sector's stocks reproduces that sector's figures.
 
 ## SQL layer

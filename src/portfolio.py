@@ -131,6 +131,46 @@ def portfolio_metrics(
     return row.to_dict()
 
 
+def sector_weights(
+    con: duckdb.DuckDBPyConnection, tickers: list[str], weights: list[float], rebalance: str
+) -> pd.DataFrame:
+    """Starting and current (last-date) weight per sector.
+
+    Under buy and hold each holding's current weight is its starting weight
+    grown by its cumulative return, renormalized; under daily rebalancing
+    weights are reset every day, so current equals starting.
+    """
+    _validate(tickers, weights, rebalance)
+    return con.execute(
+        f"""
+        WITH {_WEIGHTS_CTE},
+        last_growth AS (
+            SELECT ticker, sector, ARG_MAX(1 + cumulative_return, trade_date) AS growth
+            FROM ticker_daily_returns
+            GROUP BY ticker, sector
+        ),
+        holdings AS (
+            SELECT
+                g.sector,
+                g.ticker,
+                w.weight AS starting_weight,
+                CASE WHEN ? = 'buy_and_hold' THEN w.weight * g.growth ELSE w.weight END AS current_value
+            FROM weights w
+            JOIN last_growth g USING (ticker)
+        )
+        SELECT
+            sector,
+            string_agg(ticker, ', ' ORDER BY ticker)        AS tickers,
+            SUM(starting_weight)                            AS starting_weight,
+            SUM(current_value) / SUM(SUM(current_value)) OVER () AS current_weight
+        FROM holdings
+        GROUP BY sector
+        ORDER BY current_weight, sector
+        """,
+        [list(tickers), list(weights), rebalance],
+    ).df()
+
+
 def tickers(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     """All tickers with their sector, ordered by sector then ticker."""
     return con.execute("SELECT ticker, sector FROM sector_map ORDER BY sector, ticker").df()

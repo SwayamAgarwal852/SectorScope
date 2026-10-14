@@ -77,6 +77,11 @@ def load_metrics(tickers: tuple, weights: tuple, rebalance: str) -> dict:
 
 
 @st.cache_data(show_spinner=False)
+def load_sector_weights(tickers: tuple, weights: tuple, rebalance: str) -> pd.DataFrame:
+    return portfolio.sector_weights(cursor(), list(tickers), list(weights), rebalance)
+
+
+@st.cache_data(show_spinner=False)
 def load_correlation(tickers: tuple) -> pd.DataFrame:
     return portfolio.correlation_matrix(cursor(), list(tickers))
 
@@ -165,6 +170,7 @@ theme = "dark" if st.context.theme.type == "dark" else "light"
 colors = THEMES[theme]
 
 series = load_series(w_tickers, w_values, rebalance)
+last_date = series["trade_date"].iloc[-1]
 bench_series = load_series(bench_tickers, bench_values, rebalance)
 metrics = load_metrics(w_tickers, w_values, rebalance)
 bench_metrics = load_metrics(bench_tickers, bench_values, rebalance)
@@ -275,28 +281,46 @@ with left:
 
 with right:
     st.subheader("Sector breakdown")
+    by_sector = load_sector_weights(w_tickers, w_values, rebalance)
+    drifts = rebalance == "buy_and_hold"
     st.caption(
-        "Starting weights (they drift with prices under buy and hold)."
-        if rebalance == "buy_and_hold" else "Target weights, reset daily."
+        f"Starting weights vs. current weights on {last_date:%Y-%m-%d}, after drifting with prices."
+        if drifts else "Target weights, reset daily, so they do not drift."
     )
-    by_sector = (
-        pd.DataFrame({"ticker": list(weights), "weight": list(weights.values())})
-        .assign(sector=lambda d: d["ticker"].map(sector_of))
-        .groupby("sector", as_index=False)
-        .agg(weight=("weight", "sum"), tickers=("ticker", ", ".join))
-        .sort_values("weight")
-    )
-    fig = go.Figure(go.Bar(
-        x=by_sector["weight"], y=by_sector["sector"], orientation="h",
-        marker=dict(color=colors["portfolio"], cornerradius=4),
-        text=[pct(w) for w in by_sector["weight"]], textposition="outside", cliponaxis=False,
-        customdata=by_sector["tickers"],
-        hovertemplate="<b>%{y}</b><br>Weight %{x:.1%}<br>%{customdata}<extra></extra>",
-    ))
-    fig.update_xaxes(tickformat=".0%", title=None, range=[0, min(1.0, by_sector["weight"].max() * 1.25)])
+
+    def sector_bar(column: str, name: str, color: str) -> go.Bar:
+        return go.Bar(
+            x=by_sector[column], y=by_sector["sector"], orientation="h", name=name,
+            marker=dict(color=color, cornerradius=4),
+            text=[pct(w) for w in by_sector[column]], textposition="outside", cliponaxis=False,
+            customdata=by_sector["tickers"],
+            hovertemplate=f"<b>%{{y}}</b><br>{name} %{{x:.1%}}<br>%{{customdata}}<extra></extra>",
+        )
+
+    fig = go.Figure()
+    if drifts:
+        # Horizontal grouped bars draw bottom-up, so Current is added first to sit below Starting.
+        fig.add_trace(sector_bar("current_weight", "Current", colors["portfolio"]))
+        fig.add_trace(sector_bar("starting_weight", "Starting", colors["context"]))
+        fig.update_layout(barmode="group", bargroupgap=0.1, legend_traceorder="reversed")
+    else:
+        fig.add_trace(sector_bar("starting_weight", "Weight", colors["portfolio"]))
+        fig.update_layout(showlegend=False)
+    max_weight = by_sector[["starting_weight", "current_weight"]].to_numpy().max()
+    fig.update_xaxes(tickformat=".0%", title=None, range=[0, min(1.0, max_weight * 1.25)])
     fig.update_yaxes(title=None)
-    fig.update_layout(showlegend=False, bargap=0.35)
-    st.plotly_chart(base_layout(fig, 60 + 46 * len(by_sector)), key="sectors")
+    fig.update_layout(bargap=0.3)
+    bar_height = 64 if drifts else 46
+    st.plotly_chart(base_layout(fig, 90 + bar_height * len(by_sector)), key="sectors")
+    with st.expander("Sector weight data"):
+        st.dataframe(
+            by_sector.sort_values("current_weight", ascending=False), hide_index=True,
+            column_config={
+                "sector": "Sector", "tickers": "Holdings",
+                "starting_weight": st.column_config.NumberColumn("Starting", format="percent"),
+                "current_weight": st.column_config.NumberColumn("Current", format="percent"),
+            },
+        )
 
 # ---------------------------------------------------------------- holdings table
 
